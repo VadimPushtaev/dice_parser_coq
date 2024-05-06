@@ -13,8 +13,8 @@ Inductive die : Type :=
 
 
 Inductive distribution : Type :=
-  | Single (value : nat)
-  | Multi (value : nat) (p_tail : ZeroToOne.ZTO) (tail: distribution).
+  | Single (label : nat)
+  | Multi (label : nat) (p_tail : ZeroToOne.ZTO) (tail: distribution).
 
 Fixpoint list_mult (m : Q) (l : list Q)  : list Q :=
   match l with
@@ -32,6 +32,16 @@ Proof.
   * simpl. reflexivity.
 Qed.
 
+Lemma length_mult_does_not_change_length:
+  forall (l : list Q) (head m: Q),
+  (length l) = (length (list_mult m l)).
+Proof.
+  intros.
+  induction l.
+  * simpl. reflexivity.
+  * simpl. apply eq_S. apply IHl.
+Qed.
+
 
 Fixpoint distribution_to_probs (d : distribution): list Q :=
   match d with
@@ -42,6 +52,13 @@ Fixpoint distribution_to_probs (d : distribution): list Q :=
       p_tail.(ZeroToOne.q_val)
       (distribution_to_probs tail)
     )
+  end.
+
+Fixpoint distribution_to_labels (d : distribution): list nat :=
+  match d with
+  | Single label => [label]
+  | Multi (label) (_) (tail) =>
+    label :: distribution_to_labels tail
   end.
 
 Definition list_q_sum (lst : list Q) :=
@@ -64,7 +81,7 @@ Proof.
       apply Qmult_comm.
 
     rewrite A_disrt, A_comm.
-    
+
     reflexivity.
 Qed.
 
@@ -116,12 +133,13 @@ Proof.
     red; simpl; ring.
 Qed.
 
+
 Theorem distribution_to_probs_sum_eq_q:
   forall d : distribution,
   list_q_sum (distribution_to_probs d) == 1.
 Proof.
   intros.
-  induction d as [|value head tail InH].
+  induction d as [|label head tail InH].
   * simpl. apply Qplus_0_r.
   * simpl.
     rewrite list_q_sum_with_list_mult.
@@ -130,3 +148,27 @@ Proof.
     apply q_minus_plus.
     reflexivity.
 Qed.
+
+Theorem distribution_labels_and_probs_have_the_same_size:
+  forall d : distribution,
+  length (distribution_to_probs d) = length (distribution_to_labels d).
+Proof.
+  intros.
+  induction d.
+  * simpl. reflexivity.
+  * simpl. apply eq_S.
+    rewrite <- length_mult_does_not_change_length with
+      (m := (q_val p_tail))
+      (l := (distribution_to_probs d)).
+    apply IHd.
+    exact 0. (* discard "Q" as a goal *)
+Qed.
+
+
+
+
+
+
+
+
+
