@@ -2,8 +2,6 @@ Require Import QArith.
 Require Import QArith.QArith_base.
 
 
-Definition TT := 131.
-
 Definition is_between_zero_and_one (q : Q) : Prop :=
   0 <= q <= 1.
 
