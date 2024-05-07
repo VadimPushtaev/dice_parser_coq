@@ -1,4 +1,6 @@
 -R . DiceParser
 
 Dice.v
+Distribution.v
 ZeroToOne.v
+Seq.v
