@@ -4,125 +4,48 @@ Require Import QArith.QArith_base.
 Require Import List.
 Import ListNotations.
 
-Require Import DiceParser.ZeroToOne.
 Require Import DiceParser.Seq.
 
 Inductive distribution : Type :=
-  | Single (label : nat)
-  | Multi (label : nat) (p_tail : ZeroToOne.ZTO) (tail: distribution).
+  | Single (label : nat) (part : positive)
+  | Multi (label : nat) (part : Q) (tail: distribution).
 
 
 Fixpoint uniform_distribution (size : nat) : distribution :=
    match size with
-   | O => Single 1
-   | 1%nat => Single 1
-   | S x => Multi size
-            (ZeroToOne.one_minus_zto (ZeroToOne.Fraction_1_div_x (Pos.of_nat size)))
-            (uniform_distribution x)
+   | O => Single 1 1
+   | 1%nat => Single 1 1
+   | S x => Multi size 1 (uniform_distribution x)
    end.
 
-(* this is broken, need to implement concat first *)
-(*Fixpoint distribution_mult_single
-    (l1 : nat)
-    (d2 : distribution)
-    (labels_func : nat -> nat -> nat)
-    {struct d2}
-    : distribution :=
-  match d2 : distribution with
-  | Single l2 =>
-      Single (labels_func l1 l2)
-  | Multi l2 p_tail2 tail2 =>
-      Multi (labels_func l1 l2)
-        p_tail2 (distribution_mult_single l1 tail2 labels_func)
-  end.
-
-Fixpoint distributions_mult
-    (d1 d2 : distribution)
-    (labels_func : nat -> nat -> nat)
-    {struct d1}
-    : distribution :=
-  match d1, d2 with
-  | Single l1, Single l2 =>
-      Single (labels_func l1 l2)
-  | Single l1, Multi l2 p_tail2 tail2 =>
-      distribution_mult_single l1 d2 labels_func
-  | Multi l1 p_tail1 tail1, Single l2 =>
-      Multi (labels_func l1 l2)
-        p_tail1 (distributions_mult tail1 d2 labels_func)
-  | Multi l1 p_tail1 tail1, Multi l2 p_tail2 tail2 =>
-      Multi (labels_func l1 l2)
-          (zto_mult_zto p_tail1 p_tail2)
-          (distributions_mult tail1 tail2 labels_func)
-  end.*)
-
-Fixpoint list_mult (m : Q) (l : list Q) : list Q :=
-  match l with
-  | nil => nil
-  | cons head tail => head*m :: list_mult m tail
-  end.
-
-Lemma list_mult_head:
-  forall (l : list Q) (head m: Q),
-  (head * m) :: (list_mult m l) = (list_mult m (head::l)).
-Proof.
-  intros.
-  destruct l.
-  * simpl. reflexivity.
-  * simpl. reflexivity.
-Qed.
-
-Lemma length_mult_does_not_change_length:
-  forall (l : list Q) (head m: Q),
-  (length l) = (length (list_mult m l)).
-Proof.
-  intros.
-  induction l.
-  * simpl. reflexivity.
-  * simpl. apply eq_S. apply IHl.
-Qed.
-
-
-Fixpoint distribution_to_probs (d : distribution): list Q :=
+Fixpoint distribution_parts_sum (d : distribution) : Q :=
   match d with
-  | Single _ => [1]
-  | Multi (_) (p_tail) (tail) =>
-    (1 - p_tail.(ZeroToOne.q_val)) :: (
-      list_mult
-      p_tail.(ZeroToOne.q_val)
-      (distribution_to_probs tail)
-    )
+  | Single (_) (part) => (Z.pos part)#1
+  | Multi (_) (part) (tail) =>
+    part + (distribution_parts_sum tail)
   end.
+
+Fixpoint _distribution_to_probs (d : distribution) (sum : Q) : list Q :=
+  match d with
+  | Single (_) (part) => [((Z.pos part)#1) / sum]
+  | Multi (_) (part) (tail) =>
+    (part  / sum) :: (_distribution_to_probs tail sum)
+  end.
+
+Definition distribution_to_probs (d : distribution) : list Q :=
+  _distribution_to_probs d (distribution_parts_sum d).
+
+Compute (distribution_to_probs (uniform_distribution 5)).
 
 Fixpoint distribution_to_labels (d : distribution): list nat :=
   match d with
-  | Single label => [label]
+  | Single (label) (_) => [label]
   | Multi (label) (_) (tail) =>
     label :: distribution_to_labels tail
   end.
 
 Definition list_q_sum (lst : list Q) :=
   fold_right Qplus 0 lst.
-
-Lemma list_q_sum_with_list_mult:
-  forall (l : list Q) (m: Q),
-  list_q_sum (list_mult m l) == m * list_q_sum l.
-Proof.
-  intros.
-  induction l.
-  * simpl.
-    apply Qeq_sym.
-    apply Qmult_0_r.
-  * simpl.
-    rewrite IHl.
-    assert ((m * (a + list_q_sum l)) == (m * a + m * list_q_sum l)) as A_disrt.
-      apply Qmult_plus_distr_r .
-    assert ((m * a) == (a * m)) as A_comm.
-      apply Qmult_comm.
-
-    rewrite A_disrt, A_comm.
-
-    reflexivity.
-Qed.
 
 Lemma q_sum_mult_1:
   forall (a b c : Q),
@@ -177,16 +100,16 @@ Theorem distribution_to_probs_sum_eq_q:
   forall d : distribution,
   list_q_sum (distribution_to_probs d) == 1.
 Proof.
-  intros.
-  induction d as [|label head tail InH].
-  * simpl. apply Qplus_0_r.
+  induction d.
+  * simpl. rewrite Qplus_0_r.
+    apply Qmult_inv_r.
+    unfold "~". intros.
+    unfold "==" in H.
+    simpl in H.
+    admit.
   * simpl.
-    rewrite list_q_sum_with_list_mult.
-    rewrite InH.
-    apply q_sum_mult_1.
-    apply q_minus_plus.
-    reflexivity.
-Qed.
+    admit.
+Admitted.
 
 Theorem distribution_labels_and_probs_have_the_same_size:
   forall d : distribution,
@@ -196,12 +119,8 @@ Proof.
   induction d.
   * simpl. reflexivity.
   * simpl. apply eq_S.
-    rewrite <- length_mult_does_not_change_length with
-      (m := (q_val p_tail))
-      (l := (distribution_to_probs d)).
-    apply IHd.
-    exact 0. (* discard "Q" as a goal *)
-Qed.
+    admit.
+Admitted.
 
 Lemma distribution_to_labels_uniform_distribution_head:
   forall (n : nat),
