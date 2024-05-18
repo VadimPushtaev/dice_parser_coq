@@ -12,7 +12,6 @@ Inductive distribution : Type :=
   | Multi (label : nat) (p_tail : ZeroToOne.ZTO) (tail: distribution).
 
 
-(* this is broken, need to implement concat first *)
 Fixpoint uniform_distribution (size : nat) : distribution :=
    match size with
    | O => Single 1
@@ -22,7 +21,8 @@ Fixpoint uniform_distribution (size : nat) : distribution :=
             (uniform_distribution x)
    end.
 
-Fixpoint distribution_mult_single
+(* this is broken, need to implement concat first *)
+(*Fixpoint distribution_mult_single
     (l1 : nat)
     (d2 : distribution)
     (labels_func : nat -> nat -> nat)
@@ -53,7 +53,7 @@ Fixpoint distributions_mult
       Multi (labels_func l1 l2)
           (zto_mult_zto p_tail1 p_tail2)
           (distributions_mult tail1 tail2 labels_func)
-  end.
+  end.*)
 
 Fixpoint list_mult (m : Q) (l : list Q) : list Q :=
   match l with
@@ -227,6 +227,7 @@ Proof.
     reflexivity.
 Qed.
 
+(*
 Compute (
   distribution_to_probs
   (distributions_mult (Single 7) (uniform_distribution 5) (fun x y => x * y)%nat)
@@ -244,6 +245,7 @@ Compute (
   distribution_to_labels
   (distributions_mult (uniform_distribution 3) (uniform_distribution 3) (fun x y => x * y)%nat)
 ).
+*)
 
 Compute (distribution_to_probs (uniform_distribution 5)).
 Compute (distribution_to_labels (uniform_distribution 5)).
