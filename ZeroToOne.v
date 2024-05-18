@@ -39,6 +39,48 @@ Proof.
     + easy.
 Qed.
 
+Lemma pos_mult_is_pos :
+  forall (x y : Z),
+  (0 <= x -> 0 <= y -> 0 <= x * y)%Z.
+Proof.
+  intros.
+  induction x.
+  * simpl. reflexivity.
+  * induction y; auto.
+  * exfalso. auto.
+Qed.
+
+Lemma mult_is_between_zero_and_one
+  (q1 q2 : Q)
+  (proof1 : is_between_zero_and_one (q1))
+  (proof2 : is_between_zero_and_one (q2))
+  : is_between_zero_and_one (q1 * q2).
+Proof.
+  unfold is_between_zero_and_one in proof1, proof2.
+  destruct proof1 as [P1_0 P1_1].
+  destruct proof2 as [P2_0 P2_1].
+
+  unfold "<=" in P1_0, P1_1, P2_0, P2_1.
+  simpl in P1_0, P1_1, P2_0, P2_1.
+  rewrite Z.mul_1_r in P1_0, P1_1, P2_0, P2_1.
+
+  split.
+  * unfold "<=".
+    simpl.
+    rewrite Z.mul_1_r.
+    apply pos_mult_is_pos. apply P1_0. apply P2_0.
+  * unfold "<=".
+    simpl.
+    rewrite Z.mul_1_r.
+    rewrite Zpos_mult_morphism.
+    induction (Qnum q1).
+    + auto.
+    + induction (Qnum q2).
+      +++ auto.
+      +++ admit.
+      +++ exfalso. auto.
+    + exfalso. auto.
+Admitted.
 
 Lemma one_minus_x_is_still_between_zero_and_one (q : Q) (proof : is_between_zero_and_one (q)) :
   is_between_zero_and_one (1 - q).
@@ -73,7 +115,6 @@ Proof.
 Qed.
 
 
-
 Record ZTO : Type := {
   q_val : Q;
   q_bound : is_between_zero_and_one(q_val)  (* Proof that 0 <= q_val <= 1 *)
@@ -82,6 +123,11 @@ Record ZTO : Type := {
 Definition one_minus_zto (zto : ZTO) : ZTO := {|
   q_val := 1 - (q_val zto);
   q_bound := one_minus_x_is_still_between_zero_and_one (q_val zto) (q_bound zto)
+|}.
+
+Definition zto_mult_zto (z1 z2 : ZTO) : ZTO := {|
+  q_val := (q_val z1) * (q_val z2);
+  q_bound := mult_is_between_zero_and_one (q_val z1) (q_val z2) (q_bound z1) (q_bound z2)
 |}.
 
 Definition Zero : ZTO := {|

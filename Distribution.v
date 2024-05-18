@@ -11,6 +11,8 @@ Inductive distribution : Type :=
   | Single (label : nat)
   | Multi (label : nat) (p_tail : ZeroToOne.ZTO) (tail: distribution).
 
+
+(* this is broken, need to implement concat first *)
 Fixpoint uniform_distribution (size : nat) : distribution :=
    match size with
    | O => Single 1
@@ -19,6 +21,39 @@ Fixpoint uniform_distribution (size : nat) : distribution :=
             (ZeroToOne.one_minus_zto (ZeroToOne.Fraction_1_div_x (Pos.of_nat size)))
             (uniform_distribution x)
    end.
+
+Fixpoint distribution_mult_single
+    (l1 : nat)
+    (d2 : distribution)
+    (labels_func : nat -> nat -> nat)
+    {struct d2}
+    : distribution :=
+  match d2 : distribution with
+  | Single l2 =>
+      Single (labels_func l1 l2)
+  | Multi l2 p_tail2 tail2 =>
+      Multi (labels_func l1 l2)
+        p_tail2 (distribution_mult_single l1 tail2 labels_func)
+  end.
+
+Fixpoint distributions_mult
+    (d1 d2 : distribution)
+    (labels_func : nat -> nat -> nat)
+    {struct d1}
+    : distribution :=
+  match d1, d2 with
+  | Single l1, Single l2 =>
+      Single (labels_func l1 l2)
+  | Single l1, Multi l2 p_tail2 tail2 =>
+      distribution_mult_single l1 d2 labels_func
+  | Multi l1 p_tail1 tail1, Single l2 =>
+      Multi (labels_func l1 l2)
+        p_tail1 (distributions_mult tail1 d2 labels_func)
+  | Multi l1 p_tail1 tail1, Multi l2 p_tail2 tail2 =>
+      Multi (labels_func l1 l2)
+          (zto_mult_zto p_tail1 p_tail2)
+          (distributions_mult tail1 tail2 labels_func)
+  end.
 
 Fixpoint list_mult (m : Q) (l : list Q) : list Q :=
   match l with
@@ -168,18 +203,47 @@ Proof.
     exact 0. (* discard "Q" as a goal *)
 Qed.
 
+Lemma distribution_to_labels_uniform_distribution_head:
+  forall (n : nat),
+    (distribution_to_labels (uniform_distribution (S (S n)))) =
+      ((S (S n)) :: (distribution_to_labels (uniform_distribution (S n)))).
+Proof.
+  intros.
+  simpl.
+  reflexivity.
+Qed.
+
 Theorem uniform_distribution_labels:
   forall (n : nat),
-  (distribution_to_labels (uniform_distribution n)) = (make_desc_seq n).
+  (distribution_to_labels (uniform_distribution (S n))) = (make_desc_seq (S n)).
 Proof.
   intros.
   induction n.
   * simpl.
     reflexivity.
-  * admit.
-    (* need two lemmas here *)
-Admitted.
+  * rewrite desc_seq_descends.
+    rewrite distribution_to_labels_uniform_distribution_head.
+    rewrite IHn.
+    reflexivity.
+Qed.
 
+Compute (
+  distribution_to_probs
+  (distributions_mult (Single 7) (uniform_distribution 5) (fun x y => x * y)%nat)
+).
+Compute (
+  distribution_to_labels
+  (distributions_mult (Single 7) (uniform_distribution 5) (fun x y => x * y)%nat)
+).
+
+Compute (
+  distribution_to_probs
+  (distributions_mult (uniform_distribution 3) (uniform_distribution 3) (fun x y => x * y)%nat)
+).
+Compute (
+  distribution_to_labels
+  (distributions_mult (uniform_distribution 3) (uniform_distribution 3) (fun x y => x * y)%nat)
+).
 
 Compute (distribution_to_probs (uniform_distribution 5)).
 Compute (distribution_to_labels (uniform_distribution 5)).
