@@ -1,5 +1,6 @@
 Require Import Arith.
 Require Import QArith.
+Require Import QArith.Qabs.
 Require Import QArith.QArith_base.
 Require Import List.
 Import ListNotations.
@@ -22,20 +23,18 @@ Fixpoint distribution_parts_sum (d : distribution) : Q :=
   match d with
   | Single (_) (part) => (Z.pos part)#1
   | Multi (_) (part) (tail) =>
-    part + (distribution_parts_sum tail)
+    Qabs part + (distribution_parts_sum tail)
   end.
 
 Fixpoint _distribution_to_probs (d : distribution) (sum : Q) : list Q :=
   match d with
   | Single (_) (part) => [((Z.pos part)#1) / sum]
   | Multi (_) (part) (tail) =>
-    (part  / sum) :: (_distribution_to_probs tail sum)
+    (Qabs part  / sum) :: (_distribution_to_probs tail sum)
   end.
 
 Definition distribution_to_probs (d : distribution) : list Q :=
   _distribution_to_probs d (distribution_parts_sum d).
-
-Compute (distribution_to_probs (uniform_distribution 5)).
 
 Fixpoint distribution_to_labels (d : distribution): list nat :=
   match d with
@@ -47,56 +46,32 @@ Fixpoint distribution_to_labels (d : distribution): list nat :=
 Definition list_q_sum (lst : list Q) :=
   fold_right Qplus 0 lst.
 
-Lemma q_sum_mult_1:
+Lemma list_q_sum_distribution_to_probs__sum_as_a_plus_b:
+  forall (d : distribution) (a b: Q),
+  list_q_sum(_distribution_to_probs d (a + b)) =
+    (b / (a + b)) * list_q_sum(_distribution_to_probs d b).
+Proof.
+  intros.
+  induction d.
+  * simpl.
+    
+Admitted.
+
+Lemma common_denominator_sum:
   forall (a b c : Q),
-  a + b == c -> a + b * 1 == c.
+  a/c + b/c == (a + b)/c.
 Proof.
   intros.
-  assert (b * 1 == b) as A.
-    apply Qmult_1_r.
-  rewrite A.
-  apply H.
-Qed.
+Admitted.
 
-Lemma q_plus_zero:
-  forall (a b : Q),
-  b == 0 -> a + b == a.
+Lemma x_div_x_eq_1:
+  forall (x : Q),
+  ~ x == 0 -> x/x == 1.
 Proof.
   intros.
+Admitted.
 
-  unfold Qeq in H.
-  rewrite Zmult_0_l in H.
-  rewrite Zmult_1_r  in H.
-
-  unfold Qplus.
-  rewrite H.
-  rewrite Zplus_0_r .
-
-  unfold Qeq. simpl.
-  rewrite <- Zmult_assoc.
-  simpl.
-  replace (Z.pos (Qden b * Qden a)) with (Z.pos (Qden a * Qden b)).
-  reflexivity.
-  rewrite Pos.mul_comm.
-  reflexivity.
-Qed.
-
-Lemma q_minus_plus:
-  forall (a b c: Q),
-  a == c -> a - b + b == c.
-Proof.
-  intros.
-  unfold Qminus.
-  apply Qeq_trans with (y := a + (-b + b)).
-  * apply Qeq_sym.
-    apply Qplus_assoc with (x := a) (y :=- b) (z := b).
-  * rewrite H.
-    apply q_plus_zero.
-    red; simpl; ring.
-Qed.
-
-
-Theorem distribution_to_probs_sum_eq_q:
+Theorem distribution_to_probs_sum_eq_1:
   forall d : distribution,
   list_q_sum (distribution_to_probs d) == 1.
 Proof.
@@ -106,9 +81,17 @@ Proof.
     unfold "~". intros.
     unfold "==" in H.
     simpl in H.
-    admit.
+    discriminate H.
   * simpl.
-    admit.
+    unfold distribution_to_probs in IHd.
+    rewrite list_q_sum_distribution_to_probs__sum_as_a_plus_b.
+    rewrite IHd.
+    rewrite Qmult_1_r.
+    simpl.
+    rewrite common_denominator_sum.
+    rewrite x_div_x_eq_1.
+    + reflexivity.
+    + admit.
 Admitted.
 
 Theorem distribution_labels_and_probs_have_the_same_size:
