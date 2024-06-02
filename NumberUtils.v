@@ -7,7 +7,25 @@ Lemma gt_0_means_not_eq_0:
   forall (a : Q),
   a > 0 -> ~ a == 0.
 Proof.
-Admitted.
+  intros.
+  unfold "~".
+  intros.
+  rewrite H0 in H.
+  discriminate H.
+Qed.
+
+Lemma Q_shuffle_1234_1423:
+  forall (a b c d : Q),
+  a*b*c*d == a*d*b*c.
+Proof.
+  intros.
+  repeat (rewrite <- Qmult_assoc).
+  rewrite (Qmult_comm c d).
+  rewrite (Qmult_assoc b d c).
+  rewrite (Qmult_comm b d).
+  rewrite (Qmult_assoc d b c).
+  reflexivity.
+Qed.
 
 Lemma zero_lt_sum:
   forall (a b : Q),

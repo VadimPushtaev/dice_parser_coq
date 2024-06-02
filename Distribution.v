@@ -6,6 +6,7 @@ Require Import List.
 Import ListNotations.
 
 Require Import DiceParser.Seq.
+Require Import DiceParser.NumberUtils.
 
 Inductive distribution : Type :=
   | Single (label : nat) (part : positive)
@@ -18,6 +19,12 @@ Fixpoint uniform_distribution (size : nat) : distribution :=
    | 1%nat => Single 1 1
    | S x => Multi size 1 (uniform_distribution x)
    end.
+
+Fixpoint distribution_size (d : distribution) : nat :=
+  match d with
+  | Single _ _ => 1
+  | Multi _ _ tail => 1 + (distribution_size tail)
+  end.
 
 Fixpoint distribution_parts_sum (d : distribution) : Q :=
   match d with
@@ -48,28 +55,79 @@ Definition list_q_sum (lst : list Q) :=
 
 Lemma list_q_sum_distribution_to_probs__sum_as_a_plus_b:
   forall (d : distribution) (a b: Q),
-  list_q_sum(_distribution_to_probs d (a + b)) =
+  ~ b == 0 ->
+    list_q_sum(_distribution_to_probs d (a + b)) ==
     (b / (a + b)) * list_q_sum(_distribution_to_probs d b).
 Proof.
   intros.
   induction d.
   * simpl.
-    
-Admitted.
+    Search (_+0).
+    rewrite Qplus_0_r.
+    rewrite Qplus_0_r.
+    unfold Qdiv.
+    rewrite Qmult_assoc.
+    rewrite Q_shuffle_1234_1423.
+    rewrite Qmult_inv_r.
+    rewrite Qmult_1_l.
+    rewrite Qmult_comm.
+    reflexivity.
+    apply H.
+  * simpl.
+    rewrite IHd.
+    set (list := list_q_sum (_distribution_to_probs d b)).
+    rewrite Qmult_plus_distr_r.
+    apply Qplus_inj_r.
+    unfold Qdiv.
+    rewrite Qmult_assoc.
+    rewrite Q_shuffle_1234_1423.
+    rewrite Qmult_inv_r.
+    rewrite Qmult_1_l.
+    rewrite Qmult_comm.
+    reflexivity.
+    apply H.
+Qed.
 
-Lemma common_denominator_sum:
-  forall (a b c : Q),
-  a/c + b/c == (a + b)/c.
+Theorem distribution_parts_sum_gt_0:
+  forall d: distribution,
+  0 < distribution_parts_sum d.
 Proof.
-  intros.
-Admitted.
+  induction d.
+  * simpl. reflexivity.
+  * simpl.
+    apply zero_lt_sum.
+    + apply Qabs_nonneg.
+    + apply IHd.
+Qed.
 
-Lemma x_div_x_eq_1:
-  forall (x : Q),
-  ~ x == 0 -> x/x == 1.
+
+Theorem distribution_to_probs_sum_gt_0:
+  forall d : distribution,
+  0 < list_q_sum (distribution_to_probs d).
 Proof.
-  intros.
-Admitted.
+  induction d.
+  * simpl.
+    reflexivity.
+  * unfold distribution_to_probs.
+    simpl.
+    rewrite list_q_sum_distribution_to_probs__sum_as_a_plus_b.
+    unfold distribution_to_probs in IHd.
+    apply zero_lt_sum.
+    + apply zero_le_div.
+    +++ apply Qabs_nonneg.
+    +++ apply zero_lt_sum.
+        apply Qabs_nonneg.
+        apply distribution_parts_sum_gt_0.
+    + apply zero_lt_mult.
+    +++ apply zero_lt_div.
+        apply distribution_parts_sum_gt_0.
+        apply zero_lt_sum.
+        apply Qabs_nonneg.
+        apply distribution_parts_sum_gt_0.
+    +++ apply IHd.
+    + apply gt_0_means_not_eq_0.
+      apply distribution_parts_sum_gt_0.
+Qed.
 
 Theorem distribution_to_probs_sum_eq_1:
   forall d : distribution,
@@ -91,19 +149,63 @@ Proof.
     rewrite common_denominator_sum.
     rewrite x_div_x_eq_1.
     + reflexivity.
-    + admit.
-Admitted.
+    + apply gt_0_means_not_eq_0.
+      apply zero_lt_sum.
+    +++ apply Qabs_nonneg.
+    +++ apply distribution_parts_sum_gt_0.
+    + apply gt_0_means_not_eq_0.
+      apply distribution_parts_sum_gt_0.
+Qed.
+
+Theorem distribution_labels_size:
+  forall d : distribution,
+  length (distribution_to_labels d) = distribution_size d.
+Proof.
+  intros.
+  induction d.
+  * simpl. reflexivity.
+  * simpl.
+    apply eq_S.
+    rewrite <- IHd.
+    reflexivity.
+Qed.
+
+Lemma _distribution_to_probs_length_sum_invariant:
+  forall (d : distribution) (a b : Q),
+    length (_distribution_to_probs d (a)) =
+    length (_distribution_to_probs d (b)).
+Proof.
+  induction d.
+  * auto.
+  * intros.
+    simpl.
+    apply eq_S.
+    rewrite (IHd a b).
+    reflexivity.
+Qed.
+
+Theorem distribution_probs_size:
+  forall d : distribution,
+  length (distribution_to_probs d) = distribution_size d.
+Proof.
+  induction d.
+  * simpl. reflexivity.
+  * simpl.
+    apply eq_S.
+    rewrite <- IHd. clear IHd.
+    unfold distribution_to_probs.
+    apply _distribution_to_probs_length_sum_invariant.
+Qed.
 
 Theorem distribution_labels_and_probs_have_the_same_size:
   forall d : distribution,
   length (distribution_to_probs d) = length (distribution_to_labels d).
 Proof.
   intros.
-  induction d.
-  * simpl. reflexivity.
-  * simpl. apply eq_S.
-    admit.
-Admitted.
+  rewrite distribution_labels_size.
+  rewrite distribution_probs_size.
+  reflexivity.
+Qed.
 
 Lemma distribution_to_labels_uniform_distribution_head:
   forall (n : nat),
