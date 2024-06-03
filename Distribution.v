@@ -8,12 +8,59 @@ Import ListNotations.
 Require Import DiceParser.Seq.
 Require Import DiceParser.NumberUtils.
 
+Definition label_combinator := nat -> nat -> nat.
+
 Inductive distribution : Type :=
   | Single (label : nat) (part : positive)
   | Multi (label : nat) (part : Q) (tail: distribution).
 
+(* The same but without non-zero sum guarantees *)
+Inductive distribution_tail : Type :=
+  | SingleT (label : nat) (part : Q)
+  | MultiT (label : nat) (part : Q) (tail: distribution_tail).
 
-Fixpoint uniform_distribution (size : nat) : distribution :=
+(* Forget guarantees *)
+Fixpoint distribution_to_tail (d : distribution) : distribution_tail :=
+  match d with
+  | Single label part => SingleT label ((Z.pos part)#1)
+  | Multi label part tail => MultiT label part (distribution_to_tail tail)
+  end.
+
+Fixpoint distributions_concat (a : distribution) (b : distribution_tail) : distribution :=
+  match b with
+  | SingleT label part => Multi label part a
+  | MultiT label part tail => Multi label part (distributions_concat a tail)
+  end.
+
+Fixpoint _distribution_mult_single
+    (l : nat) (p : positive) (d : distribution) (comb : label_combinator) : distribution :=
+  match d with
+  | Single label part => Single (comb l label) (p * part)
+  | Multi label part tail => Multi (comb l label) ((Z.pos p#1) * part) (
+      _distribution_mult_single l p tail comb
+    )
+  end.
+
+Fixpoint _distribution_mult_single_tail
+    (l : nat) (p : Q) (d : distribution) (comb : label_combinator) : distribution_tail :=
+  match d with
+  | Single label part => SingleT (comb l label) (p * (Z.pos part#1))
+  | Multi label part tail => MultiT (comb l label) (p * part) (
+      _distribution_mult_single_tail l p tail comb
+    )
+  end.
+
+Fixpoint distributions_mult (a b : distribution) (comb : label_combinator) : distribution :=
+  match a with
+  | Single label part => _distribution_mult_single label part b comb
+  | Multi label part tail => (
+      distributions_concat
+      (distributions_mult tail b comb)
+      (_distribution_mult_single_tail label part b comb)
+    )
+  end.
+
+Fixpoint unifor m_distribution (size : nat) : distribution :=
    match size with
    | O => Single 1 1
    | 1%nat => Single 1 1
@@ -231,14 +278,49 @@ Proof.
     reflexivity.
 Qed.
 
-(*
+Theorem distribution_size_concat_invariant:
+  forall (a b : distribution),
+  ((distribution_size a) + (distribution_size b))%nat
+    = distribution_size (distributions_concat a (distribution_to_tail b)).
+Proof.
+  intros.
+  induction b.
+  * simpl.
+    rewrite Nat.add_1_r.
+    reflexivity.
+  * simpl.
+    rewrite <- IHb.
+    rewrite Nat.add_succ_r.
+    reflexivity.
+Qed.
+
+Theorem distributions_concat_parts_sum:
+  forall (a b : distribution),
+  (distribution_parts_sum a) + (distribution_parts_sum b)
+    == distribution_parts_sum (distributions_concat a (distribution_to_tail b)).
+Proof.
+  intros.
+  induction b.
+  * simpl.
+    rewrite Qplus_comm.
+    reflexivity.
+  * simpl.
+    rewrite <- IHb.
+    repeat (rewrite Qplus_assoc).
+    Search (_+_ == _+_).
+    apply <- Qplus_inj_r.
+    rewrite Qplus_comm.
+    reflexivity.
+Qed.
+
+
 Compute (
   distribution_to_probs
-  (distributions_mult (Single 7) (uniform_distribution 5) (fun x y => x * y)%nat)
+  (distributions_mult (Single 7 1) (uniform_distribution 5) (fun x y => x * y)%nat)
 ).
 Compute (
   distribution_to_labels
-  (distributions_mult (Single 7) (uniform_distribution 5) (fun x y => x * y)%nat)
+  (distributions_mult (Single 7 1) (uniform_distribution 5) (fun x y => x * y)%nat)
 ).
 
 Compute (
@@ -249,7 +331,7 @@ Compute (
   distribution_to_labels
   (distributions_mult (uniform_distribution 3) (uniform_distribution 3) (fun x y => x * y)%nat)
 ).
-*)
+
 
 Compute (distribution_to_probs (uniform_distribution 5)).
 Compute (distribution_to_labels (uniform_distribution 5)).
