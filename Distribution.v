@@ -8,32 +8,39 @@ Import ListNotations.
 Require Import DiceParser.Seq.
 Require Import DiceParser.NumberUtils.
 
-Definition label_combinator := nat -> nat -> nat.
+Definition LabelBinOp {LT : Type} := LT -> LT -> LT.
+Definition LabelByNat {LT : Type} := nat -> LT.
 
-Inductive distribution : Type :=
-  | Single (label : nat) (part : positive)
-  | Multi (label : nat) (part : Q) (tail: distribution).
+Inductive distribution {LT : Type} : Type :=
+  | Single (label : LT) (part : positive)
+  | Multi (label : LT) (part : Q) (tail: distribution).
 
 (* The same but without non-zero sum guarantees *)
-Inductive distribution_tail : Type :=
-  | SingleT (label : nat) (part : Q)
-  | MultiT (label : nat) (part : Q) (tail: distribution_tail).
+Inductive distribution_tail {LT : Type} : Type :=
+  | SingleT (label : LT) (part : Q)
+  | MultiT (label : LT) (part : Q) (tail: distribution_tail).
 
 (* Forget guarantees *)
-Fixpoint distribution_to_tail (d : distribution) : distribution_tail :=
+Fixpoint distribution_to_tail
+    {LT : Type} (d : distribution (LT := LT))
+    : distribution_tail :=
   match d with
   | Single label part => SingleT label ((Z.pos part)#1)
   | Multi label part tail => MultiT label part (distribution_to_tail tail)
   end.
 
-Fixpoint distributions_concat (a : distribution) (b : distribution_tail) : distribution :=
+Fixpoint distributions_concat
+    {LT : Type} (a : distribution) (b : distribution_tail (LT := LT))
+    : distribution :=
   match b with
   | SingleT label part => Multi label part a
   | MultiT label part tail => Multi label part (distributions_concat a tail)
   end.
 
 Fixpoint _distribution_mult_single
-    (l : nat) (p : positive) (d : distribution) (comb : label_combinator) : distribution :=
+    {LT : Type} (l : LT) (p : positive)
+    (d : distribution) (comb : LabelBinOp)
+    : distribution :=
   match d with
   | Single label part => Single (comb l label) (p * part)
   | Multi label part tail => Multi (comb l label) ((Z.pos p#1) * part) (
@@ -42,7 +49,9 @@ Fixpoint _distribution_mult_single
   end.
 
 Fixpoint _distribution_mult_single_tail
-    (l : nat) (p : Q) (d : distribution) (comb : label_combinator) : distribution_tail :=
+    {LT : Type} (l : LT) (p : Q) (d : distribution)
+    (comb : LabelBinOp)
+    : distribution_tail :=
   match d with
   | Single label part => SingleT (comb l label) (p * (Z.pos part#1))
   | Multi label part tail => MultiT (comb l label) (p * part) (
@@ -50,7 +59,9 @@ Fixpoint _distribution_mult_single_tail
     )
   end.
 
-Fixpoint distributions_mult (a b : distribution) (comb : label_combinator) : distribution :=
+Fixpoint distributions_mult
+    {LT : Type} (a b : distribution (LT := LT)) (comb : LabelBinOp)
+    : distribution :=
   match a with
   | Single label part => _distribution_mult_single label part b comb
   | Multi label part tail => (
@@ -60,37 +71,39 @@ Fixpoint distributions_mult (a b : distribution) (comb : label_combinator) : dis
     )
   end.
 
-Fixpoint unifor m_distribution (size : nat) : distribution :=
+Fixpoint uniform_distribution
+    {LT : Type} (size : nat) (mapper : LabelByNat (LT := LT))
+    : distribution :=
    match size with
-   | O => Single 1 1
-   | 1%nat => Single 1 1
-   | S x => Multi size 1 (uniform_distribution x)
+   | O => Single (mapper 1%nat) 1
+   | 1%nat => Single (mapper 1%nat) 1
+   | S x => Multi (mapper size) 1 (uniform_distribution x mapper)
    end.
 
-Fixpoint distribution_size (d : distribution) : nat :=
+Fixpoint distribution_size {LT : Type} (d : distribution (LT := LT)) : nat :=
   match d with
   | Single _ _ => 1
   | Multi _ _ tail => 1 + (distribution_size tail)
   end.
 
-Fixpoint distribution_parts_sum (d : distribution) : Q :=
+Fixpoint distribution_parts_sum {LT : Type} (d : distribution (LT := LT)) : Q :=
   match d with
   | Single (_) (part) => (Z.pos part)#1
   | Multi (_) (part) (tail) =>
     Qabs part + (distribution_parts_sum tail)
   end.
 
-Fixpoint _distribution_to_probs (d : distribution) (sum : Q) : list Q :=
+Fixpoint _distribution_to_probs {LT : Type} (d : distribution (LT := LT)) (sum : Q) : list Q :=
   match d with
   | Single (_) (part) => [((Z.pos part)#1) / sum]
   | Multi (_) (part) (tail) =>
     (Qabs part  / sum) :: (_distribution_to_probs tail sum)
   end.
 
-Definition distribution_to_probs (d : distribution) : list Q :=
+Definition distribution_to_probs {LT : Type} (d : distribution (LT := LT)) : list Q :=
   _distribution_to_probs d (distribution_parts_sum d).
 
-Fixpoint distribution_to_labels (d : distribution): list nat :=
+Fixpoint distribution_to_labels {LT : Type} (d : distribution): list LT :=
   match d with
   | Single (label) (_) => [label]
   | Multi (label) (_) (tail) =>
@@ -101,10 +114,10 @@ Definition list_q_sum (lst : list Q) :=
   fold_right Qplus 0 lst.
 
 Lemma list_q_sum_distribution_to_probs__sum_as_a_plus_b:
-  forall (d : distribution) (a b: Q),
+  forall {LT : Type} (d : distribution) (a b: Q),
   ~ b == 0 ->
     list_q_sum(_distribution_to_probs d (a + b)) ==
-    (b / (a + b)) * list_q_sum(_distribution_to_probs d b).
+    (b / (a + b)) * list_q_sum(_distribution_to_probs (LT := LT) d b).
 Proof.
   intros.
   induction d.
@@ -136,8 +149,8 @@ Proof.
 Qed.
 
 Theorem distribution_parts_sum_gt_0:
-  forall d: distribution,
-  0 < distribution_parts_sum d.
+  forall {LT : Type} (d : distribution),
+  0 < distribution_parts_sum (LT := LT) d.
 Proof.
   induction d.
   * simpl. reflexivity.
@@ -147,10 +160,9 @@ Proof.
     + apply IHd.
 Qed.
 
-
 Theorem distribution_to_probs_sum_gt_0:
-  forall d : distribution,
-  0 < list_q_sum (distribution_to_probs d).
+  forall {LT : Type} (d : distribution),
+  0 < list_q_sum (distribution_to_probs (LT := LT) d).
 Proof.
   induction d.
   * simpl.
@@ -177,8 +189,8 @@ Proof.
 Qed.
 
 Theorem distribution_to_probs_sum_eq_1:
-  forall d : distribution,
-  list_q_sum (distribution_to_probs d) == 1.
+  forall {LT : Type} (d : distribution),
+  list_q_sum (distribution_to_probs (LT := LT) d) == 1.
 Proof.
   induction d.
   * simpl. rewrite Qplus_0_r.
@@ -205,8 +217,8 @@ Proof.
 Qed.
 
 Theorem distribution_labels_size:
-  forall d : distribution,
-  length (distribution_to_labels d) = distribution_size d.
+  forall {LT : Type} (d : distribution),
+  length (distribution_to_labels d) = distribution_size (LT := LT) d.
 Proof.
   intros.
   induction d.
@@ -218,9 +230,9 @@ Proof.
 Qed.
 
 Lemma _distribution_to_probs_length_sum_invariant:
-  forall (d : distribution) (a b : Q),
+  forall {LT : Type} (d : distribution) (a b : Q),
     length (_distribution_to_probs d (a)) =
-    length (_distribution_to_probs d (b)).
+    length (_distribution_to_probs (LT := LT) d (b)).
 Proof.
   induction d.
   * auto.
@@ -232,8 +244,8 @@ Proof.
 Qed.
 
 Theorem distribution_probs_size:
-  forall d : distribution,
-  length (distribution_to_probs d) = distribution_size d.
+  forall {LT : Type} (d : distribution),
+  length (distribution_to_probs d) = distribution_size (LT := LT) d.
 Proof.
   induction d.
   * simpl. reflexivity.
@@ -245,8 +257,8 @@ Proof.
 Qed.
 
 Theorem distribution_labels_and_probs_have_the_same_size:
-  forall d : distribution,
-  length (distribution_to_probs d) = length (distribution_to_labels d).
+  forall {LT : Type} (d : distribution),
+  length (distribution_to_probs d) = length (distribution_to_labels (LT := LT) d).
 Proof.
   intros.
   rewrite distribution_labels_size.
@@ -256,8 +268,8 @@ Qed.
 
 Lemma distribution_to_labels_uniform_distribution_head:
   forall (n : nat),
-    (distribution_to_labels (uniform_distribution (S (S n)))) =
-      ((S (S n)) :: (distribution_to_labels (uniform_distribution (S n)))).
+    (distribution_to_labels (uniform_distribution (S (S n)) (fun n => n))) =
+      ((S (S n)) :: (distribution_to_labels (uniform_distribution (S n) (fun n => n)))).
 Proof.
   intros.
   simpl.
@@ -266,7 +278,7 @@ Qed.
 
 Theorem uniform_distribution_labels:
   forall (n : nat),
-  (distribution_to_labels (uniform_distribution (S n))) = (make_desc_seq (S n)).
+  (distribution_to_labels (uniform_distribution (S n) (fun n => n))) = (make_desc_seq (S n)).
 Proof.
   intros.
   induction n.
@@ -279,9 +291,9 @@ Proof.
 Qed.
 
 Theorem distribution_size_concat_invariant:
-  forall (a b : distribution),
+  forall {LT : Type} (a b : distribution),
   ((distribution_size a) + (distribution_size b))%nat
-    = distribution_size (distributions_concat a (distribution_to_tail b)).
+    = distribution_size (LT := LT) (distributions_concat a (distribution_to_tail b)).
 Proof.
   intros.
   induction b.
@@ -295,9 +307,9 @@ Proof.
 Qed.
 
 Theorem distributions_concat_parts_sum:
-  forall (a b : distribution),
+  forall {LT : Type} (a b : distribution),
   (distribution_parts_sum a) + (distribution_parts_sum b)
-    == distribution_parts_sum (distributions_concat a (distribution_to_tail b)).
+    == distribution_parts_sum (LT := LT) (distributions_concat a (distribution_to_tail b)).
 Proof.
   intros.
   induction b.
@@ -316,22 +328,22 @@ Qed.
 
 Compute (
   distribution_to_probs
-  (distributions_mult (Single 7 1) (uniform_distribution 5) (fun x y => x * y)%nat)
+  (distributions_mult (Single 7%nat 1) (uniform_distribution 5 (fun n => n)) (fun x y => x * y)%nat)
 ).
 Compute (
   distribution_to_labels
-  (distributions_mult (Single 7 1) (uniform_distribution 5) (fun x y => x * y)%nat)
+  (distributions_mult (Single 7%nat 1) (uniform_distribution 5 (fun n => n)) (fun x y => x * y)%nat)
 ).
 
 Compute (
   distribution_to_probs
-  (distributions_mult (uniform_distribution 3) (uniform_distribution 3) (fun x y => x * y)%nat)
+  (distributions_mult (uniform_distribution 3 (fun n => n)) (uniform_distribution 3 (fun n => n)) (fun x y => x * y)%nat)
 ).
 Compute (
   distribution_to_labels
-  (distributions_mult (uniform_distribution 3) (uniform_distribution 3) (fun x y => x * y)%nat)
+  (distributions_mult (uniform_distribution 3 (fun n => n)) (uniform_distribution 3 (fun n => n)) (fun x y => x * y)%nat)
 ).
 
 
-Compute (distribution_to_probs (uniform_distribution 5)).
-Compute (distribution_to_labels (uniform_distribution 5)).
+Compute (distribution_to_probs (uniform_distribution 5 (fun n => n))).
+Compute (distribution_to_labels (uniform_distribution 5 (fun n => n))).
