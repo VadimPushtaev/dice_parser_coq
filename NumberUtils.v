@@ -2,6 +2,18 @@ Require Import Arith.
 Require Import QArith.
 Require Import QArith.Qabs.
 Require Import QArith.QArith_base.
+Require Import QArith.
+
+Lemma ge_0_and_ne_0_means_gt_0:
+  forall (a : Q),
+  0 <= a -> ~ 0 == a -> 0 < a.
+Proof.
+  intros.
+  apply Qlt_leneq.
+  split.
+  * apply H.
+  * apply H0.
+Qed.
 
 Lemma gt_0_means_not_eq_0:
   forall (a : Q),
@@ -12,6 +24,45 @@ Proof.
   intros.
   rewrite H0 in H.
   discriminate H.
+Qed.
+
+Lemma eq_x_means_le_x:
+  forall (a : Q),
+  a == 0 -> a <= 0.
+Proof.
+  intros.
+  rewrite H.
+  unfold "<=".
+  reflexivity.
+Qed.
+
+Lemma qabs_0:
+  forall (a : Q),
+  Qabs a == 0 <-> a == 0.
+Proof.
+  split.
+  * intros H.
+    destruct (Qlt_le_dec 0 a) as [Hgt | Hle].
+    + (* Case a > 0 *)
+      apply Qlt_le_weak in Hgt.
+      apply Qabs_pos in Hgt.
+      rewrite Hgt in H.
+      apply H.
+    + (* Case a <= 0 *)
+      assert (a <= 0) as Hle_copy. apply Hle.
+      apply Qabs_neg in Hle.
+      rewrite Hle in H.
+      apply eq_x_means_le_x in H.
+      apply Qopp_le_compat in H.
+      rewrite Qopp_involutive in H.
+      unfold Qopp in H.
+      simpl in H.
+      apply Qle_antisym.
+      apply Hle_copy.
+      apply H.
+  * intros.
+    rewrite H.
+    reflexivity.
 Qed.
 
 Lemma Q_shuffle_1234_1423:
@@ -102,3 +153,21 @@ Proof.
   reflexivity.
   apply H.
 Qed.
+
+Lemma mult_ne_0:
+  forall
+    (p1 p2 : Q)
+    (proof1 : ~ p1 == 0)
+    (proof2 : ~ p2 == 0),
+  ~ (p1 * p2) == 0.
+Proof.
+  unfold "~".
+  intros.
+  apply Qmult_integral in H.
+  destruct H.
+  * apply proof1 in H.
+    contradiction H.
+  * apply proof2 in H.
+    contradiction H.
+Qed.
+
