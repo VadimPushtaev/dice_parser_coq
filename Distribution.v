@@ -99,7 +99,7 @@ Fixpoint distribution_parts_sum {LT : Type} (d : distribution (LT := LT)) : Q :=
 
 Fixpoint _distribution_to_probs {LT : Type} (d : distribution (LT := LT)) (sum : Q) : list Q :=
   match d with
-  | Single (_) (part) _ => [part / sum]
+  | Single (_) (part) _ => [Qabs part / sum]
   | Multi (_) (part) (tail) =>
     (Qabs part  / sum) :: (_distribution_to_probs tail sum)
   end.
@@ -181,7 +181,12 @@ Theorem distribution_to_probs_sum_gt_0:
 Proof.
   induction d.
   * simpl.
+    rewrite (Qmult_inv_r (Qabs part)).
     reflexivity.
+    unfold "~"; intros.
+    apply -> qabs_0 in H.
+    apply proof in H.
+    apply H.
   * unfold distribution_to_probs.
     simpl.
     rewrite list_q_sum_distribution_to_probs__sum_as_a_plus_b.
@@ -207,14 +212,14 @@ Theorem distribution_to_probs_sum_eq_1_or_0:
   forall {LT : Type} (d : distribution),
   list_q_sum (distribution_to_probs (LT := LT) d) == 1.
 Proof.
-(*
+
   induction d.
   * simpl. rewrite Qplus_0_r.
     apply Qmult_inv_r.
     unfold "~". intros.
-    unfold "==" in H.
-    simpl in H.
-    discriminate H.
+    apply -> qabs_0 in H.
+    apply proof in H.
+    apply H.
   * simpl.
     unfold distribution_to_probs in IHd.
     rewrite list_q_sum_distribution_to_probs__sum_as_a_plus_b.
@@ -230,8 +235,7 @@ Proof.
     +++ apply distribution_parts_sum_gt_0.
     + apply gt_0_means_not_eq_0.
       apply distribution_parts_sum_gt_0.
-Qed.*)
-Admitted.
+Qed.
 
 Theorem distribution_labels_size:
   forall {LT : Type} (d : distribution),
@@ -345,11 +349,11 @@ Qed.
 
 Compute (
   distribution_to_probs
-  (distributions_mult (Single 7%nat 1) (uniform_distribution 5 (fun n => n)) (fun x y => x * y)%nat)
+  (distributions_mult (Single 7%nat 1 Q_apart_0_1) (uniform_distribution 5 (fun n => n)) (fun x y => x * y)%nat)
 ).
 Compute (
   distribution_to_labels
-  (distributions_mult (Single 7%nat 1) (uniform_distribution 5 (fun n => n)) (fun x y => x * y)%nat)
+  (distributions_mult (Single 7%nat 1 Q_apart_0_1) (uniform_distribution 5 (fun n => n)) (fun x y => x * y)%nat)
 ).
 
 Compute (
