@@ -126,7 +126,6 @@ Proof.
   intros.
   induction d.
   * simpl.
-    Search (_+0).
     rewrite Qplus_0_r.
     rewrite Qplus_0_r.
     unfold Qdiv.
@@ -158,7 +157,6 @@ Theorem distribution_parts_sum_gt_0:
 Proof.
   induction d.
   * simpl.
-    Search Qabs.
     apply ge_0_and_ne_0_means_gt_0.
     + apply Qabs_nonneg.
     + unfold "~".
@@ -340,7 +338,6 @@ Proof.
   * simpl.
     rewrite <- IHb.
     repeat (rewrite Qplus_assoc).
-    Search (_+_ == _+_).
     apply <- Qplus_inj_r.
     rewrite Qplus_comm.
     reflexivity.

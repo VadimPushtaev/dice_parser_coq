@@ -170,4 +170,3 @@ Proof.
   * apply proof2 in H.
     contradiction H.
 Qed.
-
