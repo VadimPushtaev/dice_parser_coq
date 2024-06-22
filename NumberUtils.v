@@ -4,6 +4,7 @@ Require Import QArith.Qabs.
 Require Import QArith.QArith_base.
 Require Import QArith.
 
+
 Lemma ge_0_and_ne_0_means_gt_0:
   forall (a : Q),
   0 <= a -> ~ 0 == a -> 0 < a.
@@ -170,3 +171,13 @@ Proof.
   * apply proof2 in H.
     contradiction H.
 Qed.
+
+Lemma sum_abs_ne_0:
+  forall
+    (p1 p2 : Q)
+    (proof1 : ~ p1 == 0),
+  ~ ((Qabs p1) + (Qabs p2)) == 0.
+Proof.
+  unfold "~".
+  intros.
+Admitted.
