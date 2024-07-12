@@ -16,25 +16,25 @@ Inductive distribution {LT : Type} : Type :=
   | Multi (label : LT) (part : Q) (tail: distribution).
 
 (* The same but without non-zero sum guarantees *)
-Inductive distribution_tail {LT : Type} : Type :=
-  | SingleT (label : LT) (part : Q)
-  | MultiT (label : LT) (part : Q) (tail: distribution_tail).
+Inductive distribution_to_app {LT : Type} : Type :=
+  | SingleA (label : LT) (part : Q)
+  | MultiA (label : LT) (part : Q) (tail: distribution_to_app).
 
 (* Forget guarantees *)
-Fixpoint distribution_to_tail
+Fixpoint distribution_convert_to_app
     {LT : Type} (d : distribution (LT := LT))
-    : distribution_tail :=
+    : distribution_to_app :=
   match d with
-  | Single label part _ => SingleT label part
-  | Multi label part tail => MultiT label part (distribution_to_tail tail)
+  | Single label part _ => SingleA label part
+  | Multi label part tail => MultiA label part (distribution_convert_to_app tail)
   end.
 
-Fixpoint distributions_concat
-    {LT : Type} (a : distribution) (b : distribution_tail (LT := LT))
+Fixpoint distribution_append
+    {LT : Type} (a : distribution_to_app) (b : distribution (LT := LT))
     : distribution :=
-  match b with
-  | SingleT label part => Multi label part a
-  | MultiT label part tail => Multi label part (distributions_concat a tail)
+  match a with
+  | SingleA label part => Multi label part b
+  | MultiA label part tail => Multi label part (distribution_append tail b)
   end.
 
 Fixpoint _distribution_mult_single
@@ -50,16 +50,16 @@ Fixpoint _distribution_mult_single
     )
   end.
 
-Fixpoint _distribution_mult_single_tail
+Fixpoint _distribution_mult_single_to_app
     {LT : Type} (l : LT)
     (p : Q)
     (d : distribution)
     (comb : LabelBinOp)
-    : distribution_tail :=
+    : distribution_to_app :=
   match d with
-  | Single label part _ => SingleT (comb l label) (p * part)
-  | Multi label part tail => MultiT (comb l label) (p * part) (
-      _distribution_mult_single_tail l p tail comb
+  | Single label part _ => SingleA (comb l label) (p * part)
+  | Multi label part tail => MultiA (comb l label) (p * part) (
+      _distribution_mult_single_to_app l p tail comb
     )
   end.
 
@@ -69,9 +69,9 @@ Fixpoint distributions_mult
   match a with
   | Single label part proof => _distribution_mult_single label part proof b comb
   | Multi label part tail => (
-      distributions_concat
+      distribution_append
+      (_distribution_mult_single_to_app label part b comb)
       (distributions_mult tail b comb)
-      (_distribution_mult_single_tail label part b comb)
     )
   end.
 
@@ -309,37 +309,32 @@ Proof.
     reflexivity.
 Qed.
 
-Theorem distribution_size_concat_invariant:
+Theorem distribution_size_append_invariant:
   forall {LT : Type} (a b : distribution),
   ((distribution_size a) + (distribution_size b))%nat
-    = distribution_size (LT := LT) (distributions_concat a (distribution_to_tail b)).
+    = distribution_size (LT := LT) (distribution_append (distribution_convert_to_app a) b).
 Proof.
   intros.
-  induction b.
+  induction a.
   * simpl.
-    rewrite Nat.add_1_r.
     reflexivity.
   * simpl.
-    rewrite <- IHb.
-    rewrite Nat.add_succ_r.
+    rewrite IHa.
     reflexivity.
 Qed.
 
-Theorem distributions_concat_parts_sum:
+Theorem distribution_append_parts_sum:
   forall {LT : Type} (a b : distribution),
   (distribution_parts_sum a) + (distribution_parts_sum b)
-    == distribution_parts_sum (LT := LT) (distributions_concat a (distribution_to_tail b)).
+    == distribution_parts_sum (LT := LT) (distribution_append (distribution_convert_to_app a) b).
 Proof.
   intros.
-  induction b.
+  induction a.
   * simpl.
-    rewrite Qplus_comm.
     reflexivity.
   * simpl.
-    rewrite <- IHb.
-    repeat (rewrite Qplus_assoc).
-    apply <- Qplus_inj_r.
-    rewrite Qplus_comm.
+    rewrite <- IHa.
+    rewrite Qplus_assoc.
     reflexivity.
 Qed.
 
