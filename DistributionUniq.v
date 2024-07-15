@@ -74,7 +74,7 @@ Theorem modify_ignores_head_without_matches:
   (distribution_has_label d1 l cmp) = false ->
   (
     (distribution_modify_label (
-      distribution_append (distribution_convert_to_app d1) d1
+      distribution_append (distribution_convert_to_app d1) d2
     ) p l cmp comb) =
     (distribution_append
       (distribution_convert_to_app d1) 
@@ -82,14 +82,20 @@ Theorem modify_ignores_head_without_matches:
     )
   ).
 Proof.
-  intros.
   induction d1.
   * simpl.
-    destruct (cmp l label) eqn:E.
-    + admit. (* cmp l label CANNOT BE == true *)
-    + admit.
-Admitted.
-
+    intros.
+    rewrite H.
+    reflexivity.
+  * simpl.
+    intros.
+    Search (_ || _ = false).
+    apply orb_false_elim in H.
+    destruct H as [X Y].
+    rewrite X.
+    rewrite IHd1. reflexivity.
+    apply Y.
+Qed.
 
 Compute (
   let d := uniform_distribution 5 (fun n => n) in
