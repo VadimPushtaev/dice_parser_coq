@@ -77,7 +77,7 @@ Theorem modify_ignores_head_without_matches:
       distribution_append (distribution_convert_to_app d1) d2
     ) p l cmp comb) =
     (distribution_append
-      (distribution_convert_to_app d1) 
+      (distribution_convert_to_app d1)
       (distribution_modify_label d2 p l cmp comb)
     )
   ).
@@ -94,6 +94,43 @@ Proof.
     rewrite X.
     rewrite IHd1. reflexivity.
     apply Y.
+Qed.
+
+Theorem modify_uses_head_with_matches:
+  forall
+    {LT : Type}
+    (d1 d2 : distribution)
+    (p : Q)
+    (l : LT)
+    (cmp : LabelBinOpBool)
+    (comb : LabelBinOp),
+  (distribution_has_label d1 l cmp) = true ->
+  (
+    (distribution_modify_label (
+      distribution_append (distribution_convert_to_app d1) d2
+    ) p l cmp comb) =
+    (distribution_append
+      (distribution_convert_to_app (distribution_modify_label d1 p l cmp comb))
+      d2
+    )
+  ).
+Proof.
+  induction d1.
+  * simpl.
+    intros.
+    rewrite H.
+    reflexivity.
+  * intros.
+    simpl in H.
+    apply orb_prop in H.
+    destruct H.
+    + simpl.
+      rewrite H.
+      simpl.
+      reflexivity.
+    + simpl.
+      rewrite IHd1. 2: apply H.
+      destruct (cmp l label); simpl; reflexivity.
 Qed.
 
 Compute (
