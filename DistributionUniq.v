@@ -89,7 +89,6 @@ Proof.
     reflexivity.
   * simpl.
     intros.
-    Search (_ || _ = false).
     apply orb_false_elim in H.
     destruct H as [X Y].
     rewrite X.
