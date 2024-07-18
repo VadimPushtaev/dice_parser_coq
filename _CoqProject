@@ -3,5 +3,6 @@
 Dice.v
 Distribution.v
 DistributionUniq.v
+Label.v
 Seq.v
 NumberUtils.v
