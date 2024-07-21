@@ -17,8 +17,6 @@ Class Label
     value : value_type
   }.
 
-Section LabelProofs.
-
 Context
   {value_type : Type}
   {cmp : value_type -> value_type -> bool}
@@ -27,19 +25,20 @@ Context
   {cmp_trans : forall x y z : value_type, cmp x y = true -> cmp y z = true -> cmp x z = true}
   {comb : value_type -> value_type -> value_type}
   (comb_eq_left : forall x y: value_type, cmp (comb x y) x = true)
-  (comb_eq_right : forall x y: value_type, cmp (comb x y) y = true)
-  {L1 : Label value_type cmp cmp_refl cmp_sym cmp_trans comb comb_eq_left comb_eq_right}
-  {L2 : Label value_type cmp cmp_refl cmp_sym cmp_trans comb comb_eq_left comb_eq_right}.
+  (comb_eq_right : forall x y: value_type, cmp (comb x y) y = true).
 
+(* Type alias for Label *)
+Definition LabelT := Label value_type cmp cmp_refl cmp_sym cmp_trans comb comb_eq_left comb_eq_right.
+
+(* Combine helper *)
+Definition label_comb (x y : LabelT) : LabelT := 
+  {| value := comb x.(value) y.(value) |}.
 
 (* Define the equivalence relation using cmp *)
-Definition label_eqb : bool := cmp L1.(value) L2.(value).
-
-(* Broken after this line ---- *)
-
+Definition label_eqb (x y : LabelT) : bool := cmp x.(value) y.(value).
 
 (* Define the equivalence relation *)
-Definition label_eq (x y : Label value_type) : Prop :=
+Definition label_eq (x y : LabelT) : Prop :=
   cmp x.(value) y.(value) = true.
 
 (* Prove that label_eq is an equivalence relation *)
@@ -55,9 +54,8 @@ Instance label_eq_Symmetric : Symmetric label_eq.
 Proof.
   unfold Symmetric, label_eq.
   intros.
-  rewrite cmp_sym.
+  rewrite (cmp_sym value value).
   apply H.
-
 Qed.
 
 Instance label_eq_Transitive : Transitive label_eq.
@@ -74,16 +72,14 @@ Instance label_equiv : Equivalence label_eq :=
   }.
 
 (* Set up the label_eq notation and make it compatible with the rewrite tactic *)
-Infix "=" := label_eq : label_scope.
+Infix "=" := label_eq.
 
 (* Ensure that label_scope is the default scope for equality *)
 Delimit Scope label_scope with label.
 Bind Scope label_scope with Label.
 
 (* Set up the rewrite rules *)
-Instance label_eq_rewrite : Setoid Label :=
+Instance label_eq_rewrite : Setoid LabelT :=
   { equiv := label_eq
   ; setoid_equiv := label_equiv
   }.
-
-End LabelProofs.
