@@ -172,12 +172,41 @@ Proof.
     contradiction H.
 Qed.
 
+Lemma abs_plus_abs_eq_0_left:
+  forall
+    (p1 p2 : Q),
+    (Qabs p1 + Qabs p2 == 0) -> Qabs p1 == 0.
+Proof.
+  intros.
+  assert (- Qabs p1 == Qabs p2) as A.
+  {
+    rewrite <- (Qplus_opp_r (Qabs p1)) in H.
+    apply Qplus_inj_l in H.
+    rewrite H.
+    reflexivity.
+  }
+  pose proof Qabs_nonneg p1 as P1.
+  pose proof Qabs_nonneg p2 as P2.
+  rewrite <- A in P2.
+  apply Qle_antisym  in P1.
+  * apply P1.
+  * apply Qopp_le_compat in P2.
+    rewrite Qopp_opp in P2.
+    replace (-0) with 0 in P2.
+    apply P2.
+    + reflexivity.
+Qed.
+
 Lemma sum_abs_ne_0:
   forall
     (p1 p2 : Q)
     (proof1 : ~ p1 == 0),
-  ~ ((Qabs p1) + (Qabs p2)) == 0.
+    ~ ((Qabs p1) + (Qabs p2)) == 0.
 Proof.
   unfold "~".
   intros.
-Admitted.
+  apply abs_plus_abs_eq_0_left in H.
+  apply -> qabs_0 in H.
+  apply proof1 in H.
+  apply H.
+Qed.
