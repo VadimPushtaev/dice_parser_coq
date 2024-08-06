@@ -71,9 +71,6 @@ Instance label_equiv : Equivalence label_eq :=
   ; Equivalence_Transitive := label_eq_Transitive
   }.
 
-(* Set up the label_eq notation and make it compatible with the rewrite tactic *)
-Infix "=" := label_eq.
-
 (* Ensure that label_scope is the default scope for equality *)
 Delimit Scope label_scope with label.
 Bind Scope label_scope with Label.
@@ -83,3 +80,18 @@ Instance label_eq_rewrite : Setoid LabelT :=
   { equiv := label_eq
   ; setoid_equiv := label_equiv
   }.
+
+Lemma label_eqb_after_comb_left:
+  forall (x y : LabelT),
+  label_eqb x (label_comb x y) = true.
+Proof.
+  intros.
+  destruct x.
+  destruct y.
+  unfold label_comb.
+  unfold label_eqb.
+  simpl.
+  rewrite cmp_sym.
+  rewrite comb_eq_left.
+  reflexivity.
+Qed.

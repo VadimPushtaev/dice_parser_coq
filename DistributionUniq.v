@@ -40,7 +40,7 @@ Fixpoint distribution_count_label
     (if label_eqb l label then 1 else 0) + (distribution_count_label tail l)
   end.
 
-Fixpoint distribution_modify_label
+Fixpoint distribution_upsert_label
     (d : DisT)
     (p : Q)
     (l : LabelT)
@@ -53,7 +53,7 @@ Fixpoint distribution_modify_label
   | Multi label part tail =>
       if (label_eqb l label)
         then Multi (label_comb l label) ((Qabs part) + (Qabs p)) tail
-        else Multi label part (distribution_modify_label tail p l)
+        else Multi label part (distribution_upsert_label tail p l)
   end.
 
 Fixpoint distribution_uniq
@@ -62,21 +62,21 @@ Fixpoint distribution_uniq
   match d with
   | Single label part proof => Single label part proof
   | Multi label part tail => (
-      distribution_modify_label
+      distribution_upsert_label
       (distribution_uniq tail)
       part
       label
     )
   end.
 
-Theorem distribution_modify_label_length_lower_bound:
+Theorem distribution_upsert_label_length_lower_bound:
   forall
     (d : DisT)
     (p : Q)
     (l : LabelT),
   (
     (distribution_size d) <=
-    (distribution_size (distribution_modify_label d p l))
+    (distribution_size (distribution_upsert_label d p l))
   )%nat.
 Proof.
   intros.
@@ -91,13 +91,13 @@ Proof.
     + simpl. apply le_n_S. apply IHd.
 Qed.
 
-Theorem distribution_modify_label_length_upper_bound:
+Theorem distribution_upsert_label_length_upper_bound:
   forall
     (d : DisT)
     (p : Q)
     (l : LabelT),
   (
-    (distribution_size (distribution_modify_label d p l)) <=
+    (distribution_size (distribution_upsert_label d p l)) <=
     (S (distribution_size d))
   )%nat.
 Proof.
@@ -113,19 +113,19 @@ Proof.
     + simpl. apply le_n_S. apply IHd.
 Qed.
 
-Theorem modify_ignores_head_without_matches:
+Theorem upsert_ignores_head_without_matches:
   forall
     (d1 d2 : DisT)
     (p : Q)
     (l : LabelT),
   (distribution_has_label d1 l) = false ->
   (
-    (distribution_modify_label (
+    (distribution_upsert_label (
       distribution_append (distribution_convert_to_app d1) d2
     ) p l) =
     (distribution_append
       (distribution_convert_to_app d1)
-      (distribution_modify_label d2 p l)
+      (distribution_upsert_label d2 p l)
     )
   ).
 Proof.
@@ -143,18 +143,18 @@ Proof.
     apply Y.
 Qed.
 
-Theorem modify_uses_head_with_matches:
+Theorem upsert_uses_head_with_matches:
   forall
     (d1 d2 : DisT)
     (p : Q)
     (l : LabelT),
   (distribution_has_label d1 l) = true ->
   (
-    (distribution_modify_label (
+    (distribution_upsert_label (
       distribution_append (distribution_convert_to_app d1) d2
     ) p l) =
     (distribution_append
-      (distribution_convert_to_app (distribution_modify_label d1 p l))
+      (distribution_convert_to_app (distribution_upsert_label d1 p l))
       d2
     )
   ).
@@ -177,6 +177,37 @@ Proof.
       destruct (label_eqb l label); simpl; reflexivity.
 Qed.
 
+Theorem upsert_always_adds_label:
+  forall
+    (d : DisT)
+    (l : LabelT)
+    (p : Q),
+  (distribution_has_label (distribution_upsert_label d p l) l) = true.
+Proof.
+  induction d.
+  * intros.
+    simpl.
+    destruct (label_eqb l label).
+    + simpl.
+      apply label_eqb_after_comb_left.
+    + simpl.
+      unfold label_eqb.
+      rewrite (Label.cmp_refl value).
+      rewrite orb_true_l.
+      reflexivity.
+  * intros.
+    simpl.
+    destruct (label_eqb l label) eqn:E.
+    + simpl.
+      rewrite label_eqb_after_comb_left.
+      rewrite orb_true_l.
+      reflexivity.
+    + simpl.
+      rewrite IHd.
+      rewrite orb_true_r.
+      reflexivity.
+Qed.
+
 Theorem distribution_uniq_length:
   forall
     (d : DisT)
@@ -195,7 +226,7 @@ Proof.
       distribution_size
        (distribution_uniq d)
     ))).
-    + apply distribution_modify_label_length_upper_bound.
+    + apply distribution_upsert_label_length_upper_bound.
     + apply le_n_S.
       apply IHd.
 Qed.
@@ -209,7 +240,22 @@ Theorem distribution_has_label_uniq_invariant:
     distribution_uniq d
   ) l = true).
 Proof.
+  induction d.
+  * intros.
+    simpl.
+    simpl in H.
+    apply H.
+  * intros.
+    simpl in H.
+    apply orb_prop in H.
+    destruct H.
+    + admit.
+    + apply IHd in H.
+      simpl.
+      (* use upsert_always_adds_label. *)
+      admit.
 Admitted.
+    
 
 
 Theorem distribution_has_label_vs_count_label:
