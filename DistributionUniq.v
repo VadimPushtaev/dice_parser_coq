@@ -180,32 +180,87 @@ Qed.
 Theorem upsert_always_adds_label:
   forall
     (d : DisT)
-    (l : LabelT)
+    (l1 l2 : LabelT)
     (p : Q),
-  (distribution_has_label (distribution_upsert_label d p l) l) = true.
+  label_eqb l1 l2 = true ->
+    (distribution_has_label (distribution_upsert_label d p l1) l2) = true.
 Proof.
   induction d.
   * intros.
     simpl.
-    destruct (label_eqb l label).
+    destruct (label_eqb l1 label).
     + simpl.
-      apply label_eqb_after_comb_left.
+      apply label_eqb_trans with (y := l1).
+      +++ rewrite label_eqb_sym.
+          apply H.
+      +++ apply label_eqb_after_comb_left.
     + simpl.
-      unfold label_eqb.
-      rewrite (Label.cmp_refl value).
+      rewrite label_eqb_sym.
+      rewrite H.
       rewrite orb_true_l.
       reflexivity.
   * intros.
     simpl.
-    destruct (label_eqb l label) eqn:E.
+    destruct (label_eqb l1 label) eqn:E.
     + simpl.
-      rewrite label_eqb_after_comb_left.
-      rewrite orb_true_l.
-      reflexivity.
+      apply orb_true_iff; left.
+      apply label_eqb_trans with (y := l1).
+      - rewrite label_eqb_sym.
+        exact H.
+      - apply label_eqb_after_comb_left.
     + simpl.
-      rewrite IHd.
-      rewrite orb_true_r.
-      reflexivity.
+      apply orb_true_iff; right.
+      apply IHd.
+      apply H.
+Qed.
+
+Theorem upsert_never_removes_label:
+  forall
+    (d : DisT)
+    (l1 l2 : LabelT)
+    (p : Q),
+  (distribution_has_label d l1) = true ->
+    (distribution_has_label (distribution_upsert_label d p l2) l1) = true.
+Proof.
+  induction d.
+  * intros.
+    simpl.
+    destruct (label_eqb l2 label) eqn:E.
+    + simpl.
+      simpl in H.
+      apply label_eqb_trans with (y := l2).
+      +++ apply label_eqb_trans with (y := label).
+          apply H.
+          rewrite label_eqb_sym.
+          apply E.
+      +++ apply label_eqb_after_comb_left.
+    + simpl.
+      simpl in H.
+      apply orb_true_iff; right.
+      apply H.
+  * intros.
+    simpl.
+    destruct (label_eqb l2 label) eqn:E.
+    + simpl.
+      simpl in H.
+      apply orb_true_iff in H.
+      destruct H.
+      +++ apply orb_true_iff; left.
+          apply label_eqb_trans with (y := l2).
+          apply label_eqb_trans with (y := label).
+          apply H.
+          rewrite label_eqb_sym; apply E.
+          apply label_eqb_after_comb_left.
+      +++ apply orb_true_iff; right.
+          apply H.
+    + simpl.
+      simpl in H.
+      apply orb_true_iff in H; destruct H.
+      +++ apply orb_true_iff; left.
+          apply H.
+      +++ apply orb_true_iff; right.
+          apply (IHd l1 l2 p) in H.
+          apply H.
 Qed.
 
 Theorem distribution_uniq_length:
@@ -249,14 +304,15 @@ Proof.
     simpl in H.
     apply orb_prop in H.
     destruct H.
-    + admit.
+    + simpl.
+      rewrite upsert_always_adds_label; try reflexivity.
+      rewrite label_eqb_sym.
+      apply H.
     + apply IHd in H.
       simpl.
-      (* use upsert_always_adds_label. *)
-      admit.
-Admitted.
-    
-
+      apply upsert_never_removes_label.
+      apply H.
+Qed.
 
 Theorem distribution_has_label_vs_count_label:
   forall
