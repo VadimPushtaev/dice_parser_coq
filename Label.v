@@ -122,3 +122,24 @@ Proof.
   rewrite comb_eq_left.
   reflexivity.
 Qed.
+
+Lemma label_not_eqb_after_comb:
+  forall (x y z : LabelT),
+    label_eqb x y = false ->
+    label_eqb x z = false ->
+    label_eqb x (label_comb y z) = false.
+Proof.
+  intros.
+  destruct x, y, z.
+  unfold label_comb.
+  unfold label_eqb.
+  simpl.
+  destruct (cmp value0 (comb value1 value2)) eqn:E.
+  * unfold label_eqb in H, H0; simpl in H, H0.
+    assert (cmp (comb value1 value2) value1 = true) as A.
+    { rewrite comb_eq_left; reflexivity. }
+    apply cmp_trans with (z := value1) in E.
+    2:{ apply A. }
+    rewrite E in H. discriminate H.
+  * reflexivity.
+Qed.

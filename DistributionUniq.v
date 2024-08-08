@@ -214,6 +214,49 @@ Proof.
       apply H.
 Qed.
 
+Theorem upsert_only_adds_provided_label:
+  forall
+    (d : DisT)
+    (l1 l2 : LabelT)
+    (p : Q),
+  label_eqb l1 l2 = false ->
+    distribution_has_label d l2 = false ->
+    (distribution_has_label (distribution_upsert_label d p l1) l2) = false.
+Proof.
+  induction d.
+  * intros.
+    simpl.
+    destruct (label_eqb l1 label) eqn:E.
+    + simpl; simpl in H0.
+      apply label_not_eqb_after_comb.
+      +++ rewrite label_eqb_sym.
+          apply H.
+      +++ apply H0.
+    + simpl; simpl in H0.
+      apply orb_false_iff; split.
+      +++ rewrite label_eqb_sym.
+          apply H.
+      +++ apply H0.
+  * intros.
+    simpl.
+    destruct (label_eqb l1 label) eqn:E.
+    + simpl; simpl in H0.
+      apply orb_false_iff in H0; destruct H0.
+      apply orb_false_iff; split.
+      +++ apply label_not_eqb_after_comb.
+        - rewrite label_eqb_sym.
+          apply H.
+        - apply H0.
+      +++ apply H1.
+    + simpl.
+      simpl in H0; apply orb_false_iff in H0; destruct H0.
+      apply orb_false_iff; split.
+      +++ apply H0.
+      +++ apply IHd.
+        - apply H.
+        - apply H1.
+Qed.
+
 Theorem upsert_never_removes_label:
   forall
     (d : DisT)
@@ -312,6 +355,32 @@ Proof.
       simpl.
       apply upsert_never_removes_label.
       apply H.
+Qed.
+
+Theorem distribution_no_label_uniq_invariant:
+  forall
+    (d : DisT)
+    (l : LabelT),
+  (distribution_has_label d l = false) ->
+  (distribution_has_label (
+    distribution_uniq d
+  ) l = false).
+Proof.
+  induction d.
+  * intros.
+    simpl.
+    simpl in H.
+    apply H.
+  * intros.
+    simpl.
+    simpl in H.
+    apply orb_false_iff in H.
+    destruct H as [A B].
+    apply upsert_only_adds_provided_label.
+    + rewrite label_eqb_sym.
+      apply A.
+    + apply IHd.
+      apply B.
 Qed.
 
 Theorem distribution_has_label_vs_count_label:
