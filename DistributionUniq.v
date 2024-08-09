@@ -15,8 +15,7 @@ Context
   {cmp_sym : forall x y : value_type, cmp x y = cmp y x}
   {cmp_trans : forall x y z : value_type, cmp x y = true -> cmp y z = true -> cmp x z = true}
   {comb : value_type -> value_type -> value_type}
-  (comb_eq_left : forall x y: value_type, cmp (comb x y) x = true)
-  (comb_eq_right : forall x y: value_type, cmp (comb x y) y = true).
+  (comb_eq_left : forall x y: value_type, cmp (comb x y) x = true).
 
 Definition LabelT := Label.LabelT.
 Definition DisT := distribution (LT := LabelT).

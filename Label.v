@@ -12,7 +12,6 @@ Class Label
     (cmp_trans : forall x y z : value_type, cmp x y = true -> cmp y z = true -> cmp x z = true)
     (comb : value_type -> value_type -> value_type)
     (comb_eq_left : forall x y: value_type, cmp (comb x y) x = true)
-    (comb_eq_right : forall x y: value_type, cmp (comb x y) y = true)
   := {
     value : value_type
   }.
@@ -24,11 +23,10 @@ Context
   {cmp_sym : forall x y : value_type, cmp x y = cmp y x}
   {cmp_trans : forall x y z : value_type, cmp x y = true -> cmp y z = true -> cmp x z = true}
   {comb : value_type -> value_type -> value_type}
-  (comb_eq_left : forall x y: value_type, cmp (comb x y) x = true)
-  (comb_eq_right : forall x y: value_type, cmp (comb x y) y = true).
+  (comb_eq_left : forall x y: value_type, cmp (comb x y) x = true).
 
 (* Type alias for Label *)
-Definition LabelT := Label value_type cmp cmp_refl cmp_sym cmp_trans comb comb_eq_left comb_eq_right.
+Definition LabelT := Label value_type cmp cmp_refl cmp_sym cmp_trans comb comb_eq_left.
 
 (* Combine helper *)
 Definition label_comb (x y : LabelT) : LabelT := 
