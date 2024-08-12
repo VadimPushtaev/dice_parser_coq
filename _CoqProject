@@ -6,3 +6,4 @@ DistributionUniq.v
 Label.v
 Seq.v
 NumberUtils.v
+BoolUtils.v

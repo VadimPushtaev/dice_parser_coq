@@ -3,6 +3,7 @@ Require Import QArith.
 Require Import QArith.Qabs.
 Require Import QArith.QArith_base.
 Require Import DiceParser.Distribution.
+Require Import DiceParser.BoolUtils.
 Require Import DiceParser.NumberUtils.
 Require Import DiceParser.Label.
 
@@ -305,6 +306,21 @@ Proof.
           apply H.
 Qed.
 
+Theorem upsert_never_removes_label_f:
+  forall
+    (d : DisT)
+    (l1 l2 : LabelT)
+    (p : Q),
+  (distribution_has_label (distribution_upsert_label d p l2) l1) = false ->
+    (distribution_has_label d l1) = false.
+Proof.
+  intros d l1 l2 p.
+  replace false with (negb true).
+  apply bool_eq_contra.
+  * apply upsert_never_removes_label.
+  * simpl. reflexivity.
+Qed.
+
 Theorem distribution_uniq_length:
   forall
     (d : DisT)
@@ -360,26 +376,50 @@ Theorem distribution_no_label_uniq_invariant:
   forall
     (d : DisT)
     (l : LabelT),
-  (distribution_has_label d l = false) ->
+  (distribution_has_label d l = false) <->
   (distribution_has_label (
     distribution_uniq d
   ) l = false).
 Proof.
-  induction d.
-  * intros.
-    simpl.
-    simpl in H.
-    apply H.
-  * intros.
-    simpl.
-    simpl in H.
-    apply orb_false_iff in H.
-    destruct H as [A B].
-    apply upsert_only_adds_provided_label.
-    + rewrite label_eqb_sym.
-      apply A.
-    + apply IHd.
-      apply B.
+  intros.
+  split.
+  ---
+    induction d.
+    * intros.
+      simpl.
+      simpl in H.
+      apply H.
+    * intros.
+      simpl.
+      simpl in H.
+      apply orb_false_iff in H.
+      destruct H as [A B].
+      apply upsert_only_adds_provided_label.
+      + rewrite label_eqb_sym.
+        apply A.
+      + apply IHd.
+        apply B.
+  ---
+    induction d.
+    * intros.
+      simpl.
+      simpl in H.
+      apply H.
+    * intros.
+      simpl.
+      simpl in H.
+      apply orb_false_iff.
+      split.
+      + destruct (label_eqb l label) eqn:E.
+        +++ rewrite label_eqb_sym in E.
+            apply upsert_always_adds_label with
+              (d := (distribution_uniq d)) (p := part) in E.
+            rewrite H in E.
+            discriminate E.
+        +++ reflexivity.
+      + apply upsert_never_removes_label_f in H.
+        apply IHd in H.
+        apply H.
 Qed.
 
 Theorem distribution_has_label_vs_count_label:
