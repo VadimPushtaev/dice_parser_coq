@@ -214,7 +214,7 @@ Proof.
       apply H.
 Qed.
 
-Theorem upsert_only_adds_provided_label:
+Theorem upsert_only_adds_provided_label_f:
   forall
     (d : DisT)
     (l1 l2 : LabelT)
@@ -257,7 +257,24 @@ Proof.
         - apply H1.
 Qed.
 
-Theorem upsert_never_removes_label:
+Theorem upsert_only_adds_provided_label_t:
+  forall
+    (d : DisT)
+    (l1 l2 : LabelT)
+    (p : Q),
+  label_eqb l1 l2 = false ->
+    (distribution_has_label (distribution_upsert_label d p l1) l2) = true ->
+    distribution_has_label d l2 = true.
+Proof.
+  intros d l1 l2 p H.
+  replace true with (negb false).
+  apply bool_eq_contra.
+  * apply upsert_only_adds_provided_label_f.
+    apply H.
+  * simpl. reflexivity.
+Qed.
+
+Theorem upsert_never_removes_label_t:
   forall
     (d : DisT)
     (l1 l2 : LabelT)
@@ -317,7 +334,7 @@ Proof.
   intros d l1 l2 p.
   replace false with (negb true).
   apply bool_eq_contra.
-  * apply upsert_never_removes_label.
+  * apply upsert_never_removes_label_t.
   * simpl. reflexivity.
 Qed.
 
@@ -348,28 +365,49 @@ Theorem distribution_has_label_uniq_invariant:
   forall
     (d : DisT)
     (l : LabelT),
-  (distribution_has_label d l = true) ->
+  (distribution_has_label d l = true) <->
   (distribution_has_label (
     distribution_uniq d
   ) l = true).
 Proof.
-  induction d.
-  * intros.
-    simpl.
-    simpl in H.
-    apply H.
-  * intros.
-    simpl in H.
-    apply orb_prop in H.
-    destruct H.
-    + simpl.
-      rewrite upsert_always_adds_label; try reflexivity.
-      rewrite label_eqb_sym.
-      apply H.
-    + apply IHd in H.
+  intros.
+  split.
+  ---
+    induction d.
+    * intros.
       simpl.
-      apply upsert_never_removes_label.
+      simpl in H.
       apply H.
+    * intros.
+      simpl in H.
+      apply orb_prop in H.
+      destruct H.
+      + simpl.
+        rewrite upsert_always_adds_label; try reflexivity.
+        rewrite label_eqb_sym.
+        apply H.
+      + apply IHd in H.
+        simpl.
+        apply upsert_never_removes_label_t.
+        apply H.
+  ---
+    induction d.
+    * intros.
+      simpl.
+      simpl in H.
+      apply H.
+    * intros.
+      simpl.
+      simpl in H.
+      apply orb_true_iff.
+      destruct (label_eqb l label) eqn:E.
+      + left; reflexivity.
+      + right.
+        apply upsert_only_adds_provided_label_t in H.
+        apply IHd in H.
+        apply H.
+        rewrite label_eqb_sym.
+        apply E.
 Qed.
 
 Theorem distribution_no_label_uniq_invariant:
@@ -394,7 +432,7 @@ Proof.
       simpl in H.
       apply orb_false_iff in H.
       destruct H as [A B].
-      apply upsert_only_adds_provided_label.
+      apply upsert_only_adds_provided_label_f.
       + rewrite label_eqb_sym.
         apply A.
       + apply IHd.
