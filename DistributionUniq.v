@@ -194,6 +194,7 @@ Proof.
       +++ rewrite label_eqb_sym.
           apply H.
       +++ apply label_eqb_after_comb_left.
+          apply label_eqb_refl.
     + simpl.
       rewrite label_eqb_sym.
       rewrite H.
@@ -208,6 +209,7 @@ Proof.
       - rewrite label_eqb_sym.
         exact H.
       - apply label_eqb_after_comb_left.
+        apply label_eqb_refl.
     + simpl.
       apply orb_true_iff; right.
       apply IHd.
@@ -294,6 +296,7 @@ Proof.
           rewrite label_eqb_sym.
           apply E.
       +++ apply label_eqb_after_comb_left.
+          apply label_eqb_refl.
     + simpl.
       simpl in H.
       apply orb_true_iff; right.
@@ -311,6 +314,7 @@ Proof.
           apply H.
           rewrite label_eqb_sym; apply E.
           apply label_eqb_after_comb_left.
+          apply label_eqb_refl.
       +++ apply orb_true_iff; right.
           apply H.
     + simpl.
@@ -460,7 +464,12 @@ Proof.
         apply H.
 Qed.
 
-Theorem distribution_has_label_vs_count_label:
+(*
+  All about
+  distribution_count_label
+*)
+
+Theorem distribution_count_label__has_no_label:
   forall
     (d : DisT)
     (l : LabelT),
@@ -495,3 +504,77 @@ Proof.
         simpl in H; apply H.
         rewrite A; reflexivity.
 Qed.
+
+Theorem distribution_count_label__has_label:
+  forall
+    (d : DisT)
+    (l : LabelT),
+  (distribution_has_label d l = true) <->
+  (distribution_count_label d l > O)%nat.
+Proof.
+  split.
+  * intros.
+    destruct (distribution_count_label d l) eqn:E.
+    + apply <- distribution_count_label__has_no_label in E.
+      rewrite E in H.
+      discriminate H.
+    + apply Arith_prebase.gt_Sn_O_stt.
+  * intros.
+    destruct (distribution_has_label d l) eqn:E.
+    + reflexivity.
+    + apply distribution_count_label__has_no_label in E.
+      rewrite E in H.
+      apply Arith_prebase.gt_irrefl_stt in H.
+      destruct H.
+Qed.
+
+Theorem distribution_count_label__upsert_invariant:
+  forall
+    (d : DisT)
+    (part : Q)
+    (find_label upsert_label l2 : LabelT),
+  distribution_count_label d find_label =
+  distribution_count_label (distribution_upsert_label d part upsert_label) find_label.
+Proof.
+  induction d.
+  * intros.
+    simpl.
+    destruct (label_eqb find_label label) eqn:L1.
+    + destruct (label_eqb upsert_label label) eqn:L2.
+    +++ simpl.
+        replace (label_eqb find_label (label_comb upsert_label label)) with true.
+        - reflexivity.
+        - symmetry.
+          apply label_eqb_after_comb_left.
+          apply label_eqb_trans with (y := label).
+          apply L1.
+          rewrite label_eqb_sym.
+          apply L2.
+    +++ simpl.
+        rewrite L1.
+        (* prove that label_eqb find_label upsert_label = false *)
+
+(*
+Theorem distribution_uniq_count_label__has_label:
+  forall
+    (d : DisT)
+    (l : LabelT),
+  (distribution_has_label (distribution_uniq d) l = true) <->
+  (distribution_count_label (distribution_uniq d) l = 1)%nat.
+Proof.
+  split.
+  * induction d.
+    + intros.
+      simpl; simpl in H.
+      rewrite H.
+      reflexivity.
+    + intros.
+      simpl.
+      simpl in H.
+      destruct (label_eqb label l) eqn:E.
+      +++ admit.
+      +++ apply upsert_only_adds_provided_label_t
+            with (d := (distribution_uniq d)) (p := part) in E.
+          - apply IHd in E.
+            simpl in E.
+*)

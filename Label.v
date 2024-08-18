@@ -79,6 +79,17 @@ Instance label_eq_rewrite : Setoid LabelT :=
   ; setoid_equiv := label_equiv
   }.
 
+Lemma label_eqb_refl:
+  forall (x : LabelT),
+  label_eqb x x = true.
+Proof.
+  intros.
+  destruct x.
+  unfold label_eqb; simpl.
+  rewrite cmp_refl.
+  reflexivity.
+Qed.
+
 Lemma label_eqb_sym:
   forall (x y : LabelT),
   label_eqb x y = label_eqb y x.
@@ -107,18 +118,22 @@ Proof.
 Qed.
 
 Lemma label_eqb_after_comb_left:
-  forall (x y : LabelT),
-  label_eqb x (label_comb x y) = true.
+  forall (x y z : LabelT),
+    label_eqb x y = true ->
+      label_eqb x (label_comb y z) = true.
 Proof.
   intros.
-  destruct x.
-  destruct y.
+  destruct x, y, z.
   unfold label_comb.
   unfold label_eqb.
   simpl.
   rewrite cmp_sym.
-  rewrite comb_eq_left.
-  reflexivity.
+  unfold label_eqb in H.
+  apply cmp_trans with (y := value1).
+  * rewrite comb_eq_left.
+    reflexivity.
+  * rewrite cmp_sym.
+    apply H.
 Qed.
 
 Lemma label_not_eqb_after_comb:
