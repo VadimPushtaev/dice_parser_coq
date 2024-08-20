@@ -117,6 +117,23 @@ Proof.
   * exact H0.
 Qed.
 
+Lemma label_eqb_trans_false:
+  forall (x y z : LabelT),
+  label_eqb x y = true ->
+  label_eqb y z = false ->
+  label_eqb x z = false.
+Proof.
+  intros.
+  destruct (label_eqb x z) eqn:E.
+  * rewrite label_eqb_sym in E.
+    apply label_eqb_trans with (z := y) in E.
+    rewrite label_eqb_sym in E.
+    rewrite E in H0.
+    discriminate H0.
+    apply H.
+  * reflexivity.
+Qed.
+
 Lemma label_eqb_after_comb_left:
   forall (x y z : LabelT),
     label_eqb x y = true ->

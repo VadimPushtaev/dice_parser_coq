@@ -533,26 +533,58 @@ Theorem distribution_count_label__upsert_invariant:
     (d : DisT)
     (part : Q)
     (find_label upsert_label l2 : LabelT),
-  distribution_count_label d find_label =
-  distribution_count_label (distribution_upsert_label d part upsert_label) find_label.
+  label_eqb find_label upsert_label = false ->
+    distribution_count_label d find_label =
+      distribution_count_label (distribution_upsert_label d part upsert_label) find_label.
 Proof.
   induction d.
   * intros.
     simpl.
-    destruct (label_eqb find_label label) eqn:L1.
+    destruct (label_eqb find_label label) eqn:L.
+    + pose proof (L) as L'.
+      rewrite label_eqb_sym in L.
+      apply label_eqb_trans_false with (z := upsert_label) in L.
+      rewrite label_eqb_sym in L.
+      rewrite L.
+      simpl.
+      rewrite H.
+      rewrite L'.
+      auto.
+      apply H.
     + destruct (label_eqb upsert_label label) eqn:L2.
-    +++ simpl.
-        replace (label_eqb find_label (label_comb upsert_label label)) with true.
-        - reflexivity.
-        - symmetry.
-          apply label_eqb_after_comb_left.
-          apply label_eqb_trans with (y := label).
-          apply L1.
-          rewrite label_eqb_sym.
-          apply L2.
-    +++ simpl.
-        rewrite L1.
-        (* prove that label_eqb find_label upsert_label = false *)
+      - simpl.
+        rewrite label_not_eqb_after_comb.
+        reflexivity.
+        apply H.
+        apply L.
+      - simpl.
+        rewrite H, L.
+        auto.
+  * intros.
+    simpl.
+    destruct (label_eqb find_label label) eqn:L.
+    + pose proof (L) as L'.
+      rewrite label_eqb_sym in L.
+      apply label_eqb_trans_false with (z := upsert_label) in L.
+      rewrite label_eqb_sym in L.
+      rewrite L.
+      simpl.
+      rewrite L'.
+      simpl.
+      apply eq_S.
+      apply IHd.
+      auto. auto. auto.
+    + simpl.
+      destruct (label_eqb upsert_label label) eqn:L2.
+      - simpl.
+        rewrite label_not_eqb_after_comb.
+        auto. auto. auto.
+      - simpl.
+        rewrite L.
+        simpl.
+        apply IHd.
+        auto. auto.
+Qed.
 
 (*
 Theorem distribution_uniq_count_label__has_label:
