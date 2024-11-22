@@ -2,6 +2,8 @@
 
 Dice.v
 Distribution.v
+DistributionPick.v
+DistributionUtils.v
 DistributionUniq.v
 Label.v
 Seq.v

@@ -3,6 +3,7 @@ Require Import QArith.
 Require Import QArith.Qabs.
 Require Import QArith.QArith_base.
 Require Import DiceParser.Distribution.
+Require Import DiceParser.DistributionUtils.
 Require Import DiceParser.BoolUtils.
 Require Import DiceParser.NumberUtils.
 Require Import DiceParser.Label.
@@ -17,18 +18,6 @@ Context
   {cmp_trans : forall x y z : value_type, cmp x y = true -> cmp y z = true -> cmp x z = true}
   {comb : value_type -> value_type -> value_type}
   (comb_eq_left : forall x y: value_type, cmp (comb x y) x = true).
-
-Definition LabelT := Label.LabelT.
-Definition DisT := distribution (LT := LabelT).
-
-Fixpoint distribution_has_label
-    (d : DisT)
-    (l : LabelT)
-    : bool :=
-  match d with
-  | Single label part proof => (label_eqb l label)
-  | Multi label part tail => (label_eqb l label) || (distribution_has_label tail l)
-  end.
 
 Fixpoint distribution_count_label
     (d : DisT)
