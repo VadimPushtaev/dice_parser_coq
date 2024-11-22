@@ -14,4 +14,3 @@ Fixpoint distribution_has_label
   | Single label part proof => (label_eqb l label)
   | Multi label part tail => (label_eqb l label) || (distribution_has_label tail l)
   end.
-

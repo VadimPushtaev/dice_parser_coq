@@ -39,6 +39,38 @@ Definition distribution_pick {LT : Type} (d : distribution) (err : LT) (random :
     random.
 
 
+Theorem distribution_pick_no_error:
+  forall
+    (d : DisT)
+    (err : LabelT)
+    (random : Q),
+  false = distribution_has_label d err ->
+  true = Qle_bool 0 random ->
+  true = Qle_bool random 1 ->
+  false = Qeq_bool random 1 ->
+    err <> distribution_pick d err random.
+Proof.
+  induction d.
+  *
+    intros err random NoLabelH H0 H1 H1eq RH.
+    simpl in NoLabelH.
+    unfold distribution_pick in RH.
+    simpl in RH.
+    assert ((Qabs part / Qabs part) == 1) as A.
+    + rewrite x_div_x_eq_1. reflexivity.
+      rewrite qabs_0.
+      apply proof.
+    + rewrite A in RH.
+      rewrite <- H1 in RH.
+      rewrite <- H1eq in RH.
+      simpl in RH.
+      rewrite RH in NoLabelH.
+      rewrite label_eqb_refl in NoLabelH.
+      discriminate NoLabelH.
+  * admit.
+Admitted.
+
+
 (* Probs, labels, pick! *)
 Definition __d := (
   distributions_mult

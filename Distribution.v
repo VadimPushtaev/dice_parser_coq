@@ -364,20 +364,8 @@ Proof.
     reflexivity.
 Qed.
 
-(* Probs, labels, pick! *)
-Definition __d := (
-  distributions_mult
-    (Single 7%nat 1 Q_apart_0_1)
-    (uniform_distribution 5 (fun n => n))
-    (fun x y => x * y)%nat
-).
-Definition __probs := (distribution_to_probs __d).
-Compute __probs.
-Definition __labels := (distribution_to_labels __d).
-Compute __labels.
-Compute (distribution_pick __d 500%nat (59#100)%Q).
-
 (***)
+
 Compute (
   distribution_to_probs
   (distributions_mult (Single 7%nat 1 Q_apart_0_1) (uniform_distribution 5 (fun n => n)) (fun x y => x * y)%nat)
