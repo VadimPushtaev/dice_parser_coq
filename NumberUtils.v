@@ -210,3 +210,30 @@ Proof.
   apply proof1 in H.
   apply H.
 Qed.
+
+
+Lemma qle_bool_move_subtrahend_right:
+  forall
+    (a b c : Q),
+    (Qle_bool (a - b) c) = (Qle_bool a (c + b)).
+Proof.
+    admit.
+Admitted.
+
+Lemma qeq_bool_move_subtrahend_right:
+  forall
+    (a b c : Q),
+    (Qeq_bool (a - b) c) = (Qeq_bool a (c + b)).
+Proof.
+    admit.
+Admitted.
+
+Lemma common_denominator_plus:
+  forall
+    (a b c : Q),
+    (a/c + b/c) = ((a + b)/c).
+Proof.
+Admitted.
+
+
+
